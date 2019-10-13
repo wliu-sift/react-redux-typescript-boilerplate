@@ -7,7 +7,7 @@ import { TodoActions } from 'app/actions';
 import { RootState } from 'app/reducers';
 import { TodoModel } from 'app/models';
 import { omit } from 'app/utils';
-import { Header, TodoList, Footer } from 'app/components';
+import { Header, TodoList, ScoredTextList, Footer } from 'app/components';
 
 const FILTER_VALUES = (Object.keys(TodoModel.Filter) as (keyof typeof TodoModel.Filter)[]).map(
   (key) => TodoModel.Filter[key]
@@ -22,16 +22,17 @@ const FILTER_FUNCTIONS: Record<TodoModel.Filter, (todo: TodoModel) => boolean> =
 export namespace App {
   export interface Props extends RouteComponentProps<void> {
     todos: RootState.TodoState;
+    stagedGrains: RootState.StagedGrainState;
     actions: TodoActions;
     filter: TodoModel.Filter;
   }
 }
 
 @connect(
-  (state: RootState, ownProps): Pick<App.Props, 'todos' | 'filter'> => {
+  (state: RootState, ownProps): Pick<App.Props, 'todos' | 'stagedGrains' | 'filter'> => {
     const hash = ownProps.location && ownProps.location.hash.replace('#', '');
     const filter = FILTER_VALUES.find((value) => value === hash) || TodoModel.Filter.SHOW_ALL;
-    return { todos: state.todos, filter };
+    return { todos: state.todos, stagedGrains: state.stagedGrains, filter };
   },
   (dispatch: Dispatch): Pick<App.Props, 'actions'> => ({
     actions: bindActionCreators(omit(TodoActions, 'Type'), dispatch)
@@ -60,7 +61,7 @@ export class App extends React.Component<App.Props> {
   }
 
   render() {
-    const { todos, actions, filter } = this.props;
+    const { todos, stagedGrains, actions, filter } = this.props;
     const activeCount = todos.length - todos.filter((todo) => todo.completed).length;
     const filteredTodos = filter ? todos.filter(FILTER_FUNCTIONS[filter]) : todos;
     const completedCount = todos.reduce((count, todo) => (todo.completed ? count + 1 : count), 0);
@@ -69,6 +70,7 @@ export class App extends React.Component<App.Props> {
       <div className={style.normal}>
         <Header addTodo={actions.addTodo} />
         <TodoList todos={filteredTodos} actions={actions} />
+        <ScoredTextList items={stagedGrains} />
         <Footer
           filter={filter}
           activeCount={activeCount}
